@@ -38,7 +38,7 @@ def rmse_loss(pred, targ):
     denom = torch.sqrt(denom.sum()/len(denom))
     return torch.sqrt(F.mse_loss(pred, targ))/denom
 
-def check_separability_plus(pathdir, filename):
+def check_separability_plus(pathdir, filename, cuda=False):
     try:
         pathdir_weights = "results/NN_trained_models/models/"
 
@@ -60,21 +60,21 @@ def check_separability_plus(pathdir, filename):
         f_dependent = np.reshape(f_dependent,(len(f_dependent),1))
 
         factors = torch.from_numpy(variables) 
-        if is_cuda:
+        if cuda and is_cuda:
             factors = factors.cuda()
         else:
             factors = factors
         factors = factors.float()
 
         product = torch.from_numpy(f_dependent)
-        if is_cuda:
+        if cuda and is_cuda:
             product = product.cuda()
         else:
             product = product
         product = product.float()
 
         # load the trained model and put it in evaluation mode
-        if is_cuda:
+        if cuda and is_cuda:
             model = SimpleNet(n_variables).cuda()
         else:
             model = SimpleNet(n_variables)
@@ -128,7 +128,7 @@ def check_separability_plus(pathdir, filename):
         return (-1,-1,-1,-1,-1)                    
                     
                                            
-def do_separability_plus(pathdir, filename, list_i,list_j):
+def do_separability_plus(pathdir, filename, list_i, list_j, cuda=False):
     try:
         pathdir_weights = "results/NN_trained_models/models/"
 
@@ -150,21 +150,21 @@ def do_separability_plus(pathdir, filename, list_i,list_j):
         f_dependent = np.reshape(f_dependent,(len(f_dependent),1))
 
         factors = torch.from_numpy(variables) 
-        if is_cuda:
+        if cuda and is_cuda:
             factors = factors.cuda()
         else:
             factors = factors
         factors = factors.float()
 
         product = torch.from_numpy(f_dependent)
-        if is_cuda:
+        if cuda and is_cuda:
             product = product.cuda()
         else:
             product = product
         product = product.float()
 
         # load the trained model and put it in evaluation mode
-        if is_cuda:
+        if cuda and is_cuda:
             model = SimpleNet(n_variables).cuda()
         else:
             model = SimpleNet(n_variables)
@@ -210,7 +210,7 @@ def do_separability_plus(pathdir, filename, list_i,list_j):
         return (-1,-1)
 
         
-def check_separability_multiply(pathdir, filename):
+def check_separability_multiply(pathdir, filename, cuda=False):
     try:
         pathdir_weights = "results/NN_trained_models/models/"
 
@@ -238,21 +238,21 @@ def check_separability_multiply(pathdir, filename):
         variables = variables[use_idx]
 
         factors = torch.from_numpy(variables)
-        if is_cuda:
+        if cuda and is_cuda:
             factors = factors.cuda()
         else:
             factors = factors
         factors = factors.float()
 
         product = torch.from_numpy(f_dependent)
-        if is_cuda:
+        if cuda and is_cuda:
             product = product.cuda()
         else:
             product = product
         product = product.float()
 
         # load the trained model and put it in evaluation mode
-        if is_cuda:
+        if cuda and is_cuda:
             model = SimpleNet(n_variables).cuda()
         else:
             model = SimpleNet(n_variables)
@@ -328,21 +328,21 @@ def do_separability_multiply(pathdir, filename, list_i,list_j):
         f_dependent = np.reshape(f_dependent,(len(f_dependent),1))
 
         factors = torch.from_numpy(variables)
-        if is_cuda:
+        if cuda and is_cuda:
             factors = factors.cuda()
         else:
             factors = factors
         factors = factors.float()
 
         product = torch.from_numpy(f_dependent)
-        if is_cuda:
+        if cuda and is_cuda:
             product = product.cuda()
         else:
             product = product
         product = product.float()
 
         # load the trained model and put it in evaluation mode
-        if is_cuda:
+        if cuda and is_cuda:
             model = SimpleNet(n_variables).cuda()
         else:
             model = SimpleNet(n_variables)

@@ -40,7 +40,7 @@ def rmse_loss(pred, targ):
     return torch.sqrt(F.mse_loss(pred, targ))/denom
 
 
-def NN_eval(pathdir,filename):
+def NN_eval(pathdir,filename, cuda=False):
     try:
         n_variables = np.loadtxt(pathdir+filename, dtype='str').shape[1]-1
         variables = np.loadtxt(pathdir+filename, usecols=(0,))
@@ -58,26 +58,26 @@ def NN_eval(pathdir,filename):
         f_dependent = np.reshape(f_dependent,(len(f_dependent),1))
 
         factors = torch.from_numpy(variables[0:int(5*len(variables)/6)])
-        if is_cuda:
+        if cuda and is_cuda:
             factors = factors.cuda()
         else:
             factors = factors
         factors = factors.float()
         product = torch.from_numpy(f_dependent[0:int(5*len(f_dependent)/6)])
-        if is_cuda:
+        if cuda and is_cuda:
             product = product.cuda()
         else:
             product = product
         product = product.float()
 
         factors_val = torch.from_numpy(variables[int(5*len(variables)/6):int(len(variables))])
-        if is_cuda:
+        if cuda and is_cuda:
             factors_val = factors_val.cuda()
         else:
             factors_val = factors_val
         factors_val = factors_val.float()
         product_val = torch.from_numpy(f_dependent[int(5*len(variables)/6):int(len(variables))])      
-        if is_cuda:
+        if cuda and is_cuda:
             product_val = product_val.cuda()
         else:
             product_val = product_val
@@ -100,7 +100,7 @@ def NN_eval(pathdir,filename):
                 x = self.linear5(x)
                 return x
 
-        if is_cuda:
+        if cuda and is_cuda:
             model = SimpleNet(n_variables).cuda()
         else:
             model = SimpleNet(n_variables)

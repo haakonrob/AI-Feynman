@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 is_cuda = torch.cuda.is_available()
 
-def evaluate_derivatives(pathdir,filename,model):
+def evaluate_derivatives(pathdir,filename,model, cuda=False):
     try:
         data = np.loadtxt(pathdir+filename)[:,0:-1]
         pts = np.loadtxt(pathdir+filename)[:,0:-1]
@@ -18,7 +18,7 @@ def evaluate_derivatives(pathdir,filename,model):
         pts = pts.clone().detach()
         is_cuda = torch.cuda.is_available()
         grad_weights = torch.ones(pts.shape[0], 1)
-        if is_cuda:
+        if cuda and is_cuda:
             pts = pts.float().cuda()
             model = model.cuda()
             grad_weights = grad_weights.cuda()

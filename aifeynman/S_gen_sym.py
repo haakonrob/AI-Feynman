@@ -16,7 +16,7 @@ is_cuda = torch.cuda.is_available()
 
 
 # fix this to work with the other variables constant
-def check_gen_sym(pathdir,filename,model,gen_sym_idx,express,mu,sigma,nu=10):
+def check_gen_sym(pathdir,filename,model,gen_sym_idx,express,mu,sigma,nu=10, cuda=False):
     gen_sym_idx = np.append(gen_sym_idx,-1)
     data_all = np.loadtxt(pathdir+filename)
     # Choose only the data to be separated
@@ -48,7 +48,7 @@ def check_gen_sym(pathdir,filename,model,gen_sym_idx,express,mu,sigma,nu=10):
         diff = abs(f(*fixed[i])-f(*dt))
         with torch.no_grad():
             if diff<1e-4:
-                if is_cuda:
+                if cuda and is_cuda:
                     dt_ = data_all[i]
                     ii = 0
                     for k in gen_sym_idx[:-1]:

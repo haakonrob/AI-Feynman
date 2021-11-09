@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore")
 is_cuda = torch.cuda.is_available()
 
 
-def check_compositionality(pathdir,filename,model,express,mu,sigma,nu=10):
+def check_compositionality(pathdir,filename,model,express,mu,sigma,nu=10, cuda=False):
     data = np.loadtxt(pathdir+filename)
 
     eq = RPN_to_eq(express)
@@ -44,7 +44,7 @@ def check_compositionality(pathdir,filename,model,express,mu,sigma,nu=10):
         diff = abs(f(*fixed[i])-f(*dt))
         with torch.no_grad():
             if diff<1e-4:
-                if is_cuda:
+                if cuda and is_cuda:
                     dt = torch.tensor(dt).float().cuda().view(1,len(dt))
                     dt = torch.cat((torch.tensor([np.zeros(len(dt[0]))]).float().cuda(),dt), 0)
                     error = torch.tensor(data[:,-1][i]).cuda()-model(dt)[1:]

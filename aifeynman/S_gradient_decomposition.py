@@ -51,11 +51,11 @@ def evaluate_derivatives(model, s,  pts):
         r.backward()
     return pts.grad[:, s].clone().detach()
 
-def evaluate_derivatives_andrew(model, s, pts):
+def evaluate_derivatives_andrew(model, s, pts, cuda=False):
     pts = pts.clone().detach()
     is_cuda = torch.cuda.is_available()
     grad_weights = torch.ones(pts.shape[0], 1)
-    if is_cuda:
+    if cuda and is_cuda:
         pts = pts.cuda()
         model = model.cuda()
         grad_weights = grad_weights.cuda()
@@ -169,7 +169,7 @@ def signal_to_noise(high, low):
 
 score_distributions = {}
 
-def filter_decompositions_relative_scoring(X, y, model, max_subset_size=None, visualize=False):
+def filter_decompositions_relative_scoring(X, y, model, max_subset_size=None, visualize=False, cuda=False):
     '''
     X: torch tensor. N * d
     y: torch tensor. N * 1
@@ -178,7 +178,7 @@ def filter_decompositions_relative_scoring(X, y, model, max_subset_size=None, vi
     where subset is a tuple of indices in ascending order
     '''
     is_cuda = torch.cuda.is_available()
-    if is_cuda:
+    if cuda and is_cuda:
         X = X.cuda()
         y = y.cuda()
         model = model.cuda()
@@ -197,11 +197,11 @@ def filter_decompositions_relative_scoring(X, y, model, max_subset_size=None, vi
         bench_scores = []
         for i in range(random_indices.shape[0]):
             samples = draw_samples(X, y, model, s, NUM_SAMPLES, point=random_indices[i])
-            score, _ = score_consistency(evaluate_derivatives_andrew(model, s, samples))
+            score, _ = score_consistency(evaluate_derivatives_andrew(model, s, samples, cuda=cuda))
             hypot_scores.append(score)
         for i in range(random_indices.shape[0]):
             samples = draw_samples(X, y, model, (), NUM_SAMPLES, point=random_indices[i])
-            score, _ = score_consistency(evaluate_derivatives_andrew(model, s, samples))
+            score, _ = score_consistency(evaluate_derivatives_andrew(model, s, samples, cuda=cuda))
             bench_scores.append(score)
         snr = signal_to_noise(hypot_scores, bench_scores)
         # penalizes larger decompositions
@@ -227,9 +227,9 @@ def to_numpy_mask(s, n):
     return np.array([i in s for i in range(n)])
 
 
-def extract_gradients(X, y, model, s, num_points):
+def extract_gradients(X, y, model, s, num_points, cuda=False):
     is_cuda = torch.cuda.is_available()
-    if is_cuda:
+    if cuda and is_cuda:
         X = X.cuda()
         y = y.cuda()
         model = model.cuda()
@@ -237,7 +237,7 @@ def extract_gradients(X, y, model, s, num_points):
     gradients = np.zeros((num_points, len(s)))
     for i in range(num_points):
         samples = draw_samples(X, y, model, s, 50, point=idx[i])
-        _, gradients[i, :] = score_consistency(evaluate_derivatives_andrew(model, s, samples))
+        _, gradients[i, :] = score_consistency(evaluate_derivatives_andrew(model, s, samples, cuda=cuda))
         # normalize first dimension
         if(gradients[i, 0] < 0):
              gradients[i,:] *= -1
@@ -249,16 +249,16 @@ Actual hook
 Returns pair (numpy with 2k columns. First k are data points, next k are gradients), (bitmask as numpy array)
 '''
 
-def identify_decompositions(pathdir,filename, model, max_subset_size=2, visualize=False):
+def identify_decompositions(pathdir,filename, model, max_subset_size=2, visualize=False, cuda=False):
     print("identify_decompositions",pathdir,filename)
     data = np.loadtxt(pathdir+filename)
     X = torch.Tensor(data[:, :-1])
     y = torch.Tensor(data[:, [-1]])
     # Return best decomposition                                                                                                                                                   
-    all_scores = filter_decompositions_relative_scoring(X, y, model, visualize=visualize)
+    all_scores = filter_decompositions_relative_scoring(X, y, model, visualize=visualize, cuda=cuda)
     assert(all_scores)
     best_decomposition = all_scores[0][1]
-    gradients = extract_gradients(X, y, model, best_decomposition, 10000)
+    gradients = extract_gradients(X, y, model, best_decomposition, 10000, cuda=cuda)
     np.savetxt("results/gradients_gen_sym_%s" %filename, gradients)
     ll = np.arange(0,X.shape[1],1)
     print("mask", to_numpy_mask(best_decomposition, X.shape[1]))

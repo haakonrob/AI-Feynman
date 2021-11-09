@@ -30,7 +30,7 @@ from .S_gen_sym import *
 from .S_gradient_decomposition import identify_decompositions
 
 PA = ParetoSet()
-def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit_deg=4, NN_epochs=4000, PA=PA):
+def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit_deg=4, NN_epochs=4000, PA=PA, cuda=True):
     try:
         os.mkdir("results/")
     except:
@@ -64,36 +64,36 @@ def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit
         pass
     elif path.exists("results/NN_trained_models/models/" + filename + ".h5"):# or len(data[0])<3:
         print("NN already trained \n")
-        print("NN loss: ", NN_eval(pathdir,filename)[0], "\n")
-        model_feynman = NN_eval(pathdir,filename)[1]
+        print("NN loss: ", NN_eval(pathdir,filename, cuda=cuda)[0], "\n")
+        model_feynman = NN_eval(pathdir,filename, cuda=cuda)[1]
     elif path.exists("results/NN_trained_models/models/" + filename + "_pretrained.h5"):
         print("Found pretrained NN \n")
-        model_feynman = NN_train(pathdir,filename,NN_epochs/2,lrs=1e-3,N_red_lr=3,pretrained_path="results/NN_trained_models/models/" + filename + "_pretrained.h5")
-        print("NN loss after training: ", NN_eval(pathdir,filename), "\n")
+        model_feynman = NN_train(pathdir,filename,NN_epochs/2,lrs=1e-3,N_red_lr=3,pretrained_path="results/NN_trained_models/models/" + filename + "_pretrained.h5", cuda=cuda)
+        print("NN loss after training: ", NN_eval(pathdir,filename, cuda=cuda), "\n")
     else:
         print("Training a NN on the data... \n")
-        model_feynman = NN_train(pathdir,filename,NN_epochs)
-        print("NN loss: ", NN_eval(pathdir,filename), "\n")
+        model_feynman = NN_train(pathdir,filename,NN_epochs, cuda=cuda)
+        print("NN loss: ", NN_eval(pathdir,filename, cuda=cuda), "\n")
 
     
     # Check which symmetry/separability is the best
     # Symmetries
     print("Checking for symmetries...")
-    symmetry_minus_result = check_translational_symmetry_minus(pathdir,filename)
-    symmetry_divide_result = check_translational_symmetry_divide(pathdir,filename)
-    symmetry_multiply_result = check_translational_symmetry_multiply(pathdir,filename)
-    symmetry_plus_result = check_translational_symmetry_plus(pathdir,filename)
+    symmetry_minus_result = check_translational_symmetry_minus(pathdir,filename, cuda=cuda)
+    symmetry_divide_result = check_translational_symmetry_divide(pathdir,filename, cuda=cuda)
+    symmetry_multiply_result = check_translational_symmetry_multiply(pathdir,filename, cuda=cuda)
+    symmetry_plus_result = check_translational_symmetry_plus(pathdir,filename, cuda=cuda)
     print("")
 
     print("Checking for separabilities...")
     # Separabilities
-    separability_plus_result = check_separability_plus(pathdir,filename)
-    separability_multiply_result = check_separability_multiply(pathdir,filename)
+    separability_plus_result = check_separability_plus(pathdir,filename, cuda=cuda)
+    separability_multiply_result = check_separability_multiply(pathdir,filename, cuda=cuda)
 
     if symmetry_plus_result[0]==-1:
         idx_min = -1
     else:
-        idx_min = np.argmin(np.array([symmetry_plus_result[0], symmetry_minus_result[0], symmetry_multiply_result[0], symmetry_divide_result[0], separability_plus_result[0], separability_multiply_result[0]]))
+            idx_min = np.argmin(np.array([symmetry_plus_result[0], symmetry_minus_result[0], symmetry_multiply_result[0], symmetry_divide_result[0], separability_plus_result[0], separability_multiply_result[0]]))
 
     print("")
     # Check if compositionality is better than the best so far
@@ -113,7 +113,7 @@ def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit
     print("Checking for compositionality...")
     # Save the gradients for compositionality
     try:
-        succ_grad = evaluate_derivatives(pathdir,filename,model_feynman)
+        succ_grad = evaluate_derivatives(pathdir,filename,model_feynman, cuda=cuda)
     except:
         succ_grad = 0
 
@@ -127,7 +127,7 @@ def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit
                 idx_comp_temp = 0
                 try:
                     express = bf_all_output[:,1][bf_i]
-                    idx_comp_temp, eqq, new_mu, new_sigma = check_compositionality(pathdir,filename,model_feynman,express,mu,sigma,nu=10)
+                    idx_comp_temp, eqq, new_mu, new_sigma = check_compositionality(pathdir,filename,model_feynman,express,mu,sigma,nu=10, cuda=cuda)
                     if idx_comp_temp==1:
                         idx_comp = 1
                         math_eq_comp = eqq
@@ -159,7 +159,7 @@ def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit
                 idx_gen_sym_temp = 0
                 try:
                     express = bf_all_output[:,1][bf_i]
-                    idx_gen_sym_temp, eqq, new_mu, new_sigma = check_gen_sym(pathdir,filename,model_feynman,decomp_idx,express,mu,sigma,nu=10)
+                    idx_gen_sym_temp, eqq, new_mu, new_sigma = check_gen_sym(pathdir,filename,model_feynman,decomp_idx,express,mu,sigma,nu=10, cuda=cuda)
                     if idx_gen_sym_temp==1:
                         idx_gen_sym = 1
                         math_eq_gen_sym = eqq
@@ -175,43 +175,43 @@ def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit
     # Apply the best symmetry/separability and rerun the main function on this new file
     if idx_min == 0:
         print("Translational symmetry found for variables:", symmetry_plus_result[1],symmetry_plus_result[2])
-        new_pathdir, new_filename = do_translational_symmetry_plus(pathdir,filename,symmetry_plus_result[1],symmetry_plus_result[2])
+        new_pathdir, new_filename = do_translational_symmetry_plus(pathdir,filename,symmetry_plus_result[1],symmetry_plus_result[2], cuda=cuda)
         PA1_ = ParetoSet()
-        PA1 = run_AI_all(new_pathdir,new_filename,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_)
+        PA1 = run_AI_all(new_pathdir,new_filename,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_, cuda=cuda)
         PA = add_sym_on_pareto(pathdir,filename,PA1,symmetry_plus_result[1],symmetry_plus_result[2],PA,"+")
         return PA
 
     elif idx_min == 1:
         print("Translational symmetry found for variables:", symmetry_minus_result[1],symmetry_minus_result[2])
-        new_pathdir, new_filename = do_translational_symmetry_minus(pathdir,filename,symmetry_minus_result[1],symmetry_minus_result[2])
+        new_pathdir, new_filename = do_translational_symmetry_minus(pathdir,filename,symmetry_minus_result[1],symmetry_minus_result[2], cuda=cuda)
         PA1_ = ParetoSet()
-        PA1 = run_AI_all(new_pathdir,new_filename,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_)
+        PA1 = run_AI_all(new_pathdir,new_filename,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_, cuda=cuda)
         PA = add_sym_on_pareto(pathdir,filename,PA1,symmetry_minus_result[1],symmetry_minus_result[2],PA,"-")
         return PA
 
     elif idx_min == 2:
         print("Translational symmetry found for variables:", symmetry_multiply_result[1],symmetry_multiply_result[2])
-        new_pathdir, new_filename = do_translational_symmetry_multiply(pathdir,filename,symmetry_multiply_result[1],symmetry_multiply_result[2])
+        new_pathdir, new_filename = do_translational_symmetry_multiply(pathdir,filename,symmetry_multiply_result[1],symmetry_multiply_result[2], cuda=cuda)
         PA1_ = ParetoSet()
-        PA1 = run_AI_all(new_pathdir,new_filename,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_)
+        PA1 = run_AI_all(new_pathdir,new_filename,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_, cuda=cuda)
         PA = add_sym_on_pareto(pathdir,filename,PA1,symmetry_multiply_result[1],symmetry_multiply_result[2],PA,"*")
         return PA
 
     elif idx_min == 3:
         print("Translational symmetry found for variables:", symmetry_divide_result[1],symmetry_divide_result[2])
-        new_pathdir, new_filename = do_translational_symmetry_divide(pathdir,filename,symmetry_divide_result[1],symmetry_divide_result[2])
+        new_pathdir, new_filename = do_translational_symmetry_divide(pathdir,filename,symmetry_divide_result[1],symmetry_divide_result[2], cuda=cuda)
         PA1_ = ParetoSet()
-        PA1 = run_AI_all(new_pathdir,new_filename,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_)
+        PA1 = run_AI_all(new_pathdir,new_filename,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_, cuda=cuda)
         PA = add_sym_on_pareto(pathdir,filename,PA1,symmetry_divide_result[1],symmetry_divide_result[2],PA,"/")
         return PA
 
     elif idx_min == 4:
         print("Additive separability found for variables:", separability_plus_result[1],separability_plus_result[2])
-        new_pathdir1, new_filename1, new_pathdir2, new_filename2,  = do_separability_plus(pathdir,filename,separability_plus_result[1],separability_plus_result[2])
+        new_pathdir1, new_filename1, new_pathdir2, new_filename2,  = do_separability_plus(pathdir,filename,separability_plus_result[1],separability_plus_result[2], cuda=cuda)
         PA1_ = ParetoSet()
-        PA1 = run_AI_all(new_pathdir1,new_filename1,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_)
+        PA1 = run_AI_all(new_pathdir1,new_filename1,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_, cuda=cuda)
         PA2_ = ParetoSet()
-        PA2 = run_AI_all(new_pathdir2,new_filename2,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA2_)
+        PA2 = run_AI_all(new_pathdir2,new_filename2,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA2_, cuda=cuda)
         combine_pareto_data = np.loadtxt(pathdir+filename)
         PA = combine_pareto(combine_pareto_data,PA1,PA2,separability_plus_result[1],separability_plus_result[2],PA,"+")
         return PA
@@ -220,9 +220,9 @@ def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit
         print("Multiplicative separability found for variables:", separability_multiply_result[1],separability_multiply_result[2])
         new_pathdir1, new_filename1, new_pathdir2, new_filename2,  = do_separability_multiply(pathdir,filename,separability_multiply_result[1],separability_multiply_result[2])
         PA1_ = ParetoSet()
-        PA1 = run_AI_all(new_pathdir1,new_filename1,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_)
+        PA1 = run_AI_all(new_pathdir1,new_filename1,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_, cuda=cuda)
         PA2_ = ParetoSet()
-        PA2 = run_AI_all(new_pathdir2,new_filename2,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA2_)
+        PA2 = run_AI_all(new_pathdir2,new_filename2,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA2_, cuda=cuda)
         combine_pareto_data = np.loadtxt(pathdir+filename)
         PA = combine_pareto(combine_pareto_data,PA1,PA2,separability_multiply_result[1],separability_multiply_result[2],PA,"*")
         return PA
@@ -231,7 +231,7 @@ def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit
         print("Compositionality found")
         new_pathdir, new_filename = do_compositionality(pathdir,filename,math_eq_comp)
         PA1_ = ParetoSet()
-        PA1 = run_AI_all(new_pathdir,new_filename,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_)
+        PA1 = run_AI_all(new_pathdir,new_filename,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_, cuda=cuda)
         PA = add_comp_on_pareto(PA1,PA,math_eq_comp)
         return PA
 
@@ -239,13 +239,13 @@ def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit
         print("Generalized symmetry found")
         new_pathdir, new_filename = do_gen_sym(pathdir,filename,decomp_idx,math_eq_gen_sym)
         PA1_ = ParetoSet()
-        PA1 = run_AI_all(new_pathdir,new_filename,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_)
+        PA1 = run_AI_all(new_pathdir,new_filename,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_, cuda=cuda)
         PA = add_gen_sym_on_pareto(PA1,PA, decomp_idx, math_eq_gen_sym)
         return PA
     else:
         return PA
 # this runs snap on the output of aifeynman
-def run_aifeynman(pathdir,filename,BF_try_time,BF_ops_file_type, polyfit_deg=4, NN_epochs=4000, vars_name=[],test_percentage=20):
+def run_aifeynman(pathdir,filename,BF_try_time,BF_ops_file_type, polyfit_deg=4, NN_epochs=4000, vars_name=[],test_percentage=20, cuda=True):
     # If the variable names are passed, do the dimensional analysis first
     filename_orig = filename
     try:
@@ -271,7 +271,7 @@ def run_aifeynman(pathdir,filename,BF_try_time,BF_ops_file_type, polyfit_deg=4, 
 
     PA = ParetoSet()
     # Run the code on the train data
-    PA = run_AI_all(pathdir,filename+"_train",BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA=PA)
+    PA = run_AI_all(pathdir,filename+"_train",BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA=PA, cuda=cuda)
     PA_list = PA.get_pareto_points()
 
     '''
