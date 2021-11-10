@@ -101,11 +101,11 @@ def visualize_score(normalized_grads, overall_score):
     ax.set_ylim((-1, 1))
     plt.show()
 
-def score_consistency(grads_tensor):
+def score_consistency(grads_tensor, eps=1e-6):
     n_pts = grads_tensor.shape[0]
     grads_tensor = grads_tensor.cpu()
     norms = [np.linalg.norm(grads_tensor[i, :].numpy()) for i in range(n_pts)]
-    normalized_grads = [grads_tensor[i,:].numpy()/norms[i] for i in range(n_pts)]
+    normalized_grads = [grads_tensor[i,:].numpy()/(norms[i] + eps) for i in range(n_pts)]
     A = np.array(normalized_grads)
     D = np.einsum('ij,ik', A, A)
     evals, evecs = np.linalg.eig(D)
