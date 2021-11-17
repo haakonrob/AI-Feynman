@@ -30,7 +30,7 @@ from .S_gen_sym import *
 from .S_gradient_decomposition import identify_decompositions
 
 PA = ParetoSet()
-def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit_deg=4, NN_epochs=4000, PA=PA, cuda=True):
+def run_AI_all(pathdir,filename, BF_try_time=60, BF_ops_file_type="14ops", BF_gen_sym_try_time=600, polyfit_deg=4, NN_epochs=4000, PA=PA, cuda=True):
     try:
         os.mkdir("results/")
     except:
@@ -152,7 +152,7 @@ def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit
         if len(data[0])>3:
             # find the best separability indices
             decomp_idx = identify_decompositions(pathdir,filename, model_feynman)
-            brute_force_gen_sym("results/","gradients_gen_sym_%s" %filename,600,"14ops.txt")
+            brute_force_gen_sym("results/","gradients_gen_sym_%s" %filename,BF_gen_sym_try_time,"14ops.txt")
             bf_all_output = np.loadtxt("results_gen_sym.dat", dtype="str")
             
             for bf_i in range(len(bf_all_output)):
@@ -218,7 +218,7 @@ def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit
 
     elif idx_min == 5:
         print("Multiplicative separability found for variables:", separability_multiply_result[1],separability_multiply_result[2])
-        new_pathdir1, new_filename1, new_pathdir2, new_filename2,  = do_separability_multiply(pathdir,filename,separability_multiply_result[1],separability_multiply_result[2])
+        new_pathdir1, new_filename1, new_pathdir2, new_filename2,  = do_separability_multiply(pathdir,filename,separability_multiply_result[1],separability_multiply_result[2], cuda=cuda)
         PA1_ = ParetoSet()
         PA1 = run_AI_all(new_pathdir1,new_filename1,BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA1_, cuda=cuda)
         PA2_ = ParetoSet()
@@ -244,8 +244,11 @@ def run_AI_all(pathdir,filename,BF_try_time=60,BF_ops_file_type="14ops", polyfit
         return PA
     else:
         return PA
+
+
+
 # this runs snap on the output of aifeynman
-def run_aifeynman(pathdir,filename,BF_try_time,BF_ops_file_type, polyfit_deg=4, NN_epochs=4000, vars_name=[],test_percentage=20, cuda=True):
+def run_aifeynman(pathdir,filename,BF_try_time, BF_ops_file_type, BF_gen_sym_try_time=600, polyfit_deg=4, NN_epochs=4000, vars_name=[],test_percentage=20, cuda=True):
     # If the variable names are passed, do the dimensional analysis first
     filename_orig = filename
     try:
@@ -271,7 +274,7 @@ def run_aifeynman(pathdir,filename,BF_try_time,BF_ops_file_type, polyfit_deg=4, 
 
     PA = ParetoSet()
     # Run the code on the train data
-    PA = run_AI_all(pathdir,filename+"_train",BF_try_time,BF_ops_file_type, polyfit_deg, NN_epochs, PA=PA, cuda=cuda)
+    PA = run_AI_all(pathdir,filename+"_train",BF_try_time,BF_ops_file_type, BF_gen_sym_try_time, polyfit_deg, NN_epochs, PA=PA, cuda=cuda)
     PA_list = PA.get_pareto_points()
 
     '''

@@ -306,7 +306,7 @@ def check_separability_multiply(pathdir, filename, cuda=False):
 
                     
                     
-def do_separability_multiply(pathdir, filename, list_i,list_j):
+def do_separability_multiply(pathdir, filename, list_i,list_j, cuda=False):
     try:
         pathdir_weights = "results/NN_trained_models/models/"
 
